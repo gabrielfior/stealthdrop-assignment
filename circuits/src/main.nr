@@ -11,11 +11,32 @@ fn main(
   polynomial_commitment: pub Field,
   nullifier: pub [u8; 32],
 ) {
-  // Write your main logic here
+  let nullifier_hash = std::hash::blake2s(signature);
+  assert(nullifier_hash == nullifier);
+ 
+  //From Shubham's comment (https://github.com/atomniketh/stealthdrop-assignment/pull/1/files#r1299736218)
+  let key = ecrecover::secp256k1::PubKey::from_unified(pub_key);
+  let signer = ecrecover::ecrecover(key.pub_x, key.pub_y, signature, hashed_message);
+
+  // Checks if nullifier is valid hash of signature
+  let polynomial_hash = std::hash::pedersen(polynomial);
+  assert(polynomial_hash[0] == polynomial_commitment);
+  
+  // Checks if address is included in polynomial
+  let value = evaluate_polynomial(polynomial, signer);
+  assert(value == 0);
 }
 
 fn evaluate_polynomial(polynomial: [Field; CANDIDATES + 1], x: Field) -> Field {
-  // Write logic to evaluate polynomial here
+  // From Shubham's comment (https://github.com/0xPhaze/stealthdrop-assignment/pull/1#discussion_r1299714109)
+  let mut mult = 1;
+  let mut evaluation = 0;
+
+  for idx in 0..CANDIDATES + 1 {
+    evaluation = mult * polynomial[idx] + evaluation;
+    mult = mult * x;
+  }
+  evaluation
 }
 
 #[test]
